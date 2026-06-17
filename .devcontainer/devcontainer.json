@@ -1,0 +1,39 @@
+{
+  "name": "PrakritiSense Data Collection",
+  "image": "mcr.microsoft.com/devcontainers/universal:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "forwardPorts": [8000, 8080],
+  "portsAttributes": {
+    "8000": {
+      "label": "PrakritiSense App",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "npm install -g live-server && pip install pandas numpy scikit-learn xgboost shap streamlit matplotlib seaborn",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ritwickdey.LiveServer",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ],
+      "settings": {
+        "editor.formatOnSave": false,
+        "files.exclude": {
+          "**/.DS_Store": true,
+          "**/__pycache__": true
+        }
+      }
+    }
+  },
+  "remoteUser": "codespace"
+}

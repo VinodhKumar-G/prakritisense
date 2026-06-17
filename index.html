@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrakritiSense — Data Collection</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">◆</span>
+        <span class="logo-text">PrakritiSense</span>
+      </div>
+      <div class="phase-indicator" id="phaseIndicator">
+        <span class="phase-dot active" data-phase="welcome"></span>
+        <span class="phase-dot" data-phase="consent"></span>
+        <span class="phase-dot" data-phase="quiz"></span>
+        <span class="phase-dot" data-phase="typing-copy"></span>
+        <span class="phase-dot" data-phase="typing-free"></span>
+        <span class="phase-dot" data-phase="stroop"></span>
+        <span class="phase-dot" data-phase="mouse"></span>
+        <span class="phase-dot" data-phase="tlx"></span>
+        <span class="phase-dot" data-phase="done"></span>
+      </div>
+    </header>
+
+    <main class="app-main" id="mainContent">
+      <!-- ──────── WELCOME ──────── -->
+      <section class="phase active" id="phase-welcome">
+        <div class="welcome-card">
+          <h1>PrakritiSense Data Collection</h1>
+          <p class="subtitle">A 90-minute research session to study cognitive fatigue patterns through passive micro-interaction signals.</p>
+
+          <div class="info-grid">
+            <div class="info-tile">
+              <span class="tile-icon">📋</span>
+              <div>
+                <div class="tile-title">Prakriti Quiz</div>
+                <div class="tile-desc">10 questions · 3 min</div>
+              </div>
+            </div>
+            <div class="info-tile">
+              <span class="tile-icon">⌨️</span>
+              <div>
+                <div class="tile-title">Typing tasks</div>
+                <div class="tile-desc">3 tasks · 60 min</div>
+              </div>
+            </div>
+            <div class="info-tile">
+              <span class="tile-icon">🖱️</span>
+              <div>
+                <div class="tile-title">Mouse task</div>
+                <div class="tile-desc">Target clicks · 15 min</div>
+              </div>
+            </div>
+            <div class="info-tile">
+              <span class="tile-icon">✅</span>
+              <div>
+                <div class="tile-title">NASA-TLX</div>
+                <div class="tile-desc">Final feedback · 5 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="participant-form">
+            <label for="participantId">Participant ID</label>
+            <input type="text" id="participantId" placeholder="e.g. P001, P002..." autocomplete="off">
+            <small>Use the ID assigned to you. Do not enter your real name.</small>
+          </div>
+
+          <button class="btn-primary btn-large" onclick="startSession()">Begin Session →</button>
+        </div>
+      </section>
+
+      <!-- ──────── CONSENT ──────── -->
+      <section class="phase" id="phase-consent">
+        <div class="content-card">
+          <h2>Informed Consent</h2>
+          <div class="consent-text">
+            <p>You are about to participate in a research study on cognitive fatigue detection using passive keyboard and mouse signals.</p>
+
+            <h3>What will be captured</h3>
+            <ul>
+              <li><strong>Keystroke timings:</strong> when keys are pressed and released (timestamps only)</li>
+              <li><strong>Key codes:</strong> which key was pressed (letter keys are recorded; we do NOT save the words you type)</li>
+              <li><strong>Mouse coordinates:</strong> cursor position sampled every 100ms</li>
+              <li><strong>Click events:</strong> when and where you click</li>
+              <li><strong>Prakriti quiz answers:</strong> your A/B/C responses</li>
+            </ul>
+
+            <h3>What will NOT be captured</h3>
+            <ul>
+              <li>Your typed words or text content (only individual keystroke timings)</li>
+              <li>Personal identifying information</li>
+              <li>Screen contents, screenshots, or video</li>
+              <li>Any data outside this browser tab</li>
+            </ul>
+
+            <h3>Your rights</h3>
+            <ul>
+              <li>You may stop the session at any time by closing the browser tab.</li>
+              <li>You may request your data be deleted by contacting the research team.</li>
+              <li>All data will be exported as a CSV file at the end of the session for your reference.</li>
+            </ul>
+          </div>
+
+          <label class="consent-check">
+            <input type="checkbox" id="consentCheck" onchange="updateConsentBtn()">
+            <span>I have read and understood the above. I consent to participate.</span>
+          </label>
+
+          <div class="nav-row">
+            <button class="btn-back" onclick="goToPhase('welcome')">← Back</button>
+            <button class="btn-primary" id="consentNextBtn" disabled onclick="goToPhase('quiz')">Continue →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── PRAKRITI QUIZ ──────── -->
+      <section class="phase" id="phase-quiz">
+        <div class="content-card">
+          <div class="progress-bar"><div class="progress-fill" id="quizProgress" style="width:10%"></div></div>
+          <div class="q-counter" id="qCounter">Question 1 of 10</div>
+          <h3 class="q-text" id="qText"></h3>
+          <div class="options-grid" id="optionsGrid"></div>
+          <div class="nav-row">
+            <button class="btn-back" id="quizBackBtn" onclick="goQuizBack()">← Back</button>
+            <button class="btn-primary" id="quizNextBtn" disabled onclick="goQuizNext()">Next →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── PRAKRITI RESULT ──────── -->
+      <section class="phase" id="phase-quiz-result">
+        <div class="content-card">
+          <h2>Your Prakriti Profile</h2>
+          <p class="subtitle">Based on your responses, here is your constitutional breakdown. This will personalize the fatigue model.</p>
+          <div id="doshaResults"></div>
+          <div class="nav-row">
+            <button class="btn-back" onclick="goToPhase('quiz')">← Retake</button>
+            <button class="btn-primary" onclick="goToPhase('typing-copy')">Start typing tasks →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── TASK 1: COPY TYPING ──────── -->
+      <section class="phase" id="phase-typing-copy">
+        <div class="content-card task-card">
+          <div class="task-header">
+            <div>
+              <h2>Task 1 of 4 — Copy Typing</h2>
+              <p class="task-desc">Retype the paragraph below as accurately as you can. The text is from Wikipedia.</p>
+            </div>
+            <div class="timer" id="timer1">15:00</div>
+          </div>
+
+          <div class="source-text" id="copySourceText"></div>
+
+          <textarea
+            class="typing-area"
+            id="copyTypingArea"
+            placeholder="Click here and start typing..."
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"></textarea>
+
+          <div class="task-stats" id="copyStats">
+            <span><strong id="copyKeystrokes">0</strong> keystrokes</span>
+            <span><strong id="copyChars">0</strong> characters</span>
+            <span><strong id="copyErrors">0</strong> backspaces</span>
+            <span><strong id="copyCPM">0</strong> CPM</span>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" disabled>← Back</button>
+            <button class="btn-primary" id="copyNextBtn" onclick="finishCopyTask()">Continue →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── TASK 2: FREE TYPING ──────── -->
+      <section class="phase" id="phase-typing-free">
+        <div class="content-card task-card">
+          <div class="task-header">
+            <div>
+              <h2>Task 2 of 4 — Free Typing</h2>
+              <p class="task-desc">Answer the prompt below in your own words. Write naturally — there are no right answers.</p>
+            </div>
+            <div class="timer" id="timer2">30:00</div>
+          </div>
+
+          <div class="prompt-box" id="freePromptText"></div>
+
+          <textarea
+            class="typing-area typing-area-large"
+            id="freeTypingArea"
+            placeholder="Start writing your response..."
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"></textarea>
+
+          <div class="task-stats" id="freeStats">
+            <span><strong id="freeKeystrokes">0</strong> keystrokes</span>
+            <span><strong id="freeChars">0</strong> characters</span>
+            <span><strong id="freeErrors">0</strong> backspaces</span>
+            <span><strong id="freeCPM">0</strong> CPM</span>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" disabled>← Back</button>
+            <button class="btn-primary" onclick="finishFreeTask()">Continue →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── TASK 3: STROOP TYPING ──────── -->
+      <section class="phase" id="phase-stroop">
+        <div class="content-card task-card">
+          <div class="task-header">
+            <div>
+              <h2>Task 3 of 4 — Stroop Typing Task</h2>
+              <p class="task-desc">Type the COLOR of the ink the word is written in — not the word itself. Type the first letter only (R, G, B, Y, P, O).</p>
+            </div>
+            <div class="timer" id="timer3">15:00</div>
+          </div>
+
+          <div class="stroop-area">
+            <div class="stroop-counter">Trial <span id="stroopTrialNum">1</span> of <span id="stroopTotalTrials">60</span></div>
+            <div class="stroop-stimulus" id="stroopStimulus">READY</div>
+            <div class="stroop-legend">
+              <span class="stroop-key" style="color:#E24B4A">R = Red</span>
+              <span class="stroop-key" style="color:#1D9E75">G = Green</span>
+              <span class="stroop-key" style="color:#378ADD">B = Blue</span>
+              <span class="stroop-key" style="color:#BA7517">Y = Yellow</span>
+              <span class="stroop-key" style="color:#7F77DD">P = Purple</span>
+              <span class="stroop-key" style="color:#D85A30">O = Orange</span>
+            </div>
+            <div class="stroop-feedback" id="stroopFeedback">&nbsp;</div>
+          </div>
+
+          <div class="task-stats" id="stroopStats">
+            <span><strong id="stroopCorrect">0</strong> correct</span>
+            <span><strong id="stroopWrong">0</strong> errors</span>
+            <span><strong id="stroopAvgRT">0</strong>ms avg RT</span>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" disabled>← Back</button>
+            <button class="btn-primary" id="stroopNextBtn" disabled onclick="finishStroopTask()">Continue →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── TASK 4: MOUSE TARGETING ──────── -->
+      <section class="phase" id="phase-mouse">
+        <div class="content-card task-card">
+          <div class="task-header">
+            <div>
+              <h2>Task 4 of 4 — Mouse Targeting</h2>
+              <p class="task-desc">Click each blue circle as it appears. Work as quickly and accurately as you can.</p>
+            </div>
+            <div class="timer" id="timer4">15:00</div>
+          </div>
+
+          <div class="mouse-arena" id="mouseArena">
+            <div class="mouse-target" id="mouseTarget" style="display:none"></div>
+          </div>
+
+          <div class="task-stats" id="mouseStats">
+            <span><strong id="mouseHits">0</strong> hits</span>
+            <span><strong id="mouseMisses">0</strong> misses</span>
+            <span><strong id="mouseAvgRT">0</strong>ms avg RT</span>
+            <span><strong id="mouseJitter">0</strong>px jitter</span>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" disabled>← Back</button>
+            <button class="btn-primary" id="mouseNextBtn" onclick="finishMouseTask()">Continue →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── NASA-TLX ──────── -->
+      <section class="phase" id="phase-tlx">
+        <div class="content-card">
+          <h2>NASA Task Load Index (NASA-TLX)</h2>
+          <p class="subtitle">Rate each dimension of your experience during the session. Move each slider from low to high.</p>
+
+          <div class="tlx-grid" id="tlxGrid"></div>
+
+          <div class="nav-row">
+            <button class="btn-back" disabled>← Back</button>
+            <button class="btn-primary" onclick="finishTLX()">Finish session →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────── DONE ──────── -->
+      <section class="phase" id="phase-done">
+        <div class="content-card done-card">
+          <div class="done-icon">✓</div>
+          <h1>Session complete</h1>
+          <p class="subtitle">Thank you for participating. Your data has been processed and is ready to export.</p>
+
+          <div class="session-summary" id="sessionSummary"></div>
+
+          <div class="export-actions">
+            <button class="btn-primary" onclick="exportCSV()">📥 Download CSV</button>
+            <button class="btn-secondary" onclick="exportJSON()">📥 Download JSON</button>
+            <button class="btn-secondary" onclick="copySessionSummary()">📋 Copy summary</button>
+          </div>
+
+          <p class="export-note">Save both files. Send them to the research team for analysis.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Status footer -->
+    <footer class="app-footer">
+      <span id="phaseLabel">Welcome</span>
+      <span class="separator">·</span>
+      <span id="elapsedTime">00:00</span>
+      <span class="separator">·</span>
+      <span id="featureCount">0 windows captured</span>
+    </footer>
+  </div>
+
+  <script src="signals.js"></script>
+  <script src="tasks.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
