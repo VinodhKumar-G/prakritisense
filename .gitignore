@@ -1,0 +1,7 @@
+*.csv
+*.json
+!package.json
+node_modules/
+.DS_Store
+__pycache__/
+*.pyc
