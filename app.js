@@ -521,7 +521,6 @@ function showDbStatus(status, result) {
 function exportCSV() {
   const csv = collector.exportCSV();
   const filename = `prakritisense_${state.participantId}_${Date.now()}.csv`;
-  saveToServer(filename, csv, "/save-csv");
   download(filename, csv, "text/csv");
 }
 
@@ -543,33 +542,7 @@ function exportJSON() {
     nasa_tlx: state.tlxValues,
   });
   const filename = `prakritisense_${state.participantId}_${Date.now()}.json`;
-  saveToServer(filename, data, "/save-json");
   download(filename, data, "application/json");
-}
-
-function saveToServer(filename, content, endpoint) {
-  fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename, content }),
-  })
-    .then(res => res.json())
-    .then(result => {
-      console.log("[saveToServer] Saved into Codespace:", result.path);
-      const note = document.querySelector(".export-note");
-      if (note) {
-        note.textContent = `Saved to ${result.path} inside this Codespace, and downloaded to your computer.`;
-        note.style.color = "var(--sage)";
-      }
-    })
-    .catch(err => {
-      console.warn("[saveToServer] Could not reach server.py — file was still downloaded locally.", err);
-      const note = document.querySelector(".export-note");
-      if (note) {
-        note.textContent = "Could not save into Codespace automatically — file was downloaded to your computer. Drag it into the Codespace file explorer manually, or check that server.py is running.";
-        note.style.color = "var(--coral)";
-      }
-    });
 }
 
 function download(filename, content, mimetype) {
