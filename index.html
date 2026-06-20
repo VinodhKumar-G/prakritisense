@@ -64,10 +64,10 @@
             </div>
           </div>
 
-          <div class="participant-form">
-            <label for="participantId">Participant ID</label>
-            <input type="text" id="participantId" placeholder="e.g. P001, P002..." autocomplete="off">
-            <small>Use the ID assigned to you. Do not enter your real name.</small>
+          <div class="participant-form auto-id">
+            <label>Your session ID</label>
+            <div class="auto-id-display" id="autoIdDisplay">generating...</div>
+            <small>Auto-generated — save this code if you need to refer back to your session.</small>
           </div>
 
           <button class="btn-primary btn-large" onclick="startSession()">Begin Session →</button>
@@ -223,11 +223,11 @@
               <h2>Task 3 of 4 — Stroop Typing Task</h2>
               <p class="task-desc">Type the COLOR of the ink the word is written in — not the word itself. Type the first letter only (R, G, B, Y, P, O).</p>
             </div>
-            <div class="timer" id="timer3">15:00</div>
+            <div class="timer" id="timer3">10:00</div>
           </div>
 
           <div class="stroop-area">
-            <div class="stroop-counter">Trial <span id="stroopTrialNum">1</span> of <span id="stroopTotalTrials">60</span></div>
+            <div class="stroop-counter">Trial <span id="stroopTrialNum">1</span> of <span id="stroopTotalTrials">30</span></div>
             <div class="stroop-stimulus" id="stroopStimulus">READY</div>
             <div class="stroop-legend">
               <span class="stroop-key" style="color:#E24B4A">R = Red</span>

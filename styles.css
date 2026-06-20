@@ -841,3 +841,25 @@ body {
   .phase-indicator { gap: 4px; }
   .phase-dot { width: 6px; height: 6px; }
 }
+
+/* ──────── AUTO SESSION ID ──────── */
+.auto-id-display {
+  font-family: 'SF Mono', Monaco, 'Cascadia Mono', monospace;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--teal);
+  background: var(--bg-soft);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  margin: 6px 0 4px;
+}
+.participant-form.auto-id label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

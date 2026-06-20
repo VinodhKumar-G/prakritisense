@@ -159,7 +159,7 @@ const STROOP_COLORS = {
 
 const STROOP_WORDS = ["RED", "GREEN", "BLUE", "YELLOW", "PURPLE", "ORANGE"];
 
-function generateStroopTrials(count = 60) {
+function generateStroopTrials(count = 30) {
   const trials = [];
   for (let i = 0; i < count; i++) {
     const word = STROOP_WORDS[Math.floor(Math.random() * STROOP_WORDS.length)];

@@ -82,14 +82,21 @@ function goToPhase(phase) {
 
 // ──────── WELCOME → SESSION START ────────────────────────────────────
 
-function startSession() {
-  const idInput = document.getElementById("participantId");
-  const id = idInput.value.trim();
-  if (!id) {
-    alert("Please enter your participant ID before starting.");
-    idInput.focus();
-    return;
+function generateSessionId() {
+  // Format: PS-XXXXXX  (6 uppercase alphanumeric chars, ~2.2 billion combinations)
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I to avoid confusion
+  let code = "PS-";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
   }
+  return code;
+}
+
+function startSession() {
+  // ID was generated on page load — just read it from the display
+  const id = document.getElementById("autoIdDisplay").textContent.trim();
+  if (!id || id === "generating...") return;
+
   state.participantId = id;
   state.sessionStartTime = Date.now();
   collector.start(id, "welcome");
@@ -278,11 +285,11 @@ function finishFreeTask() {
 // ──────── TASK 3: STROOP TASK ────────────────────────────────────────
 
 function initStroopTask() {
-  state.stroopTrials = generateStroopTrials(60);
+  state.stroopTrials = generateStroopTrials(30);
   state.stroopCurrent = 0;
   state.stroopResults = [];
   document.getElementById("stroopTotalTrials").textContent = state.stroopTrials.length;
-  startTaskTimer("timer3", 15 * 60);
+  startTaskTimer("timer3", 10 * 60);
 
   // Keyboard listener for Stroop
   document.addEventListener("keydown", handleStroopKey);
@@ -616,5 +623,8 @@ function clearTaskTimer(timerId) {
 // ──────── INITIALIZE ON LOAD ─────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", () => {
+  // Generate and display the session ID immediately on page load
+  const display = document.getElementById("autoIdDisplay");
+  if (display) display.textContent = generateSessionId();
   goToPhase("welcome");
 });
