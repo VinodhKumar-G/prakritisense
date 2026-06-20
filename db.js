@@ -12,7 +12,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 // ── CONFIGURE THESE TWO VALUES ────────────────────────────────────────
-const SUPABASE_URL      = "https://gxodetmbxbqlzkpwyktm.supabase.co/rest/v1/";
+const SUPABASE_URL      = "https://gxodetmbxbqlzkpwyktm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Sb-z0yjKTN8nEJE07Ky2UA_4Y41TvOu";
 // ──────────────────────────────────────────────────────────────────────
 
