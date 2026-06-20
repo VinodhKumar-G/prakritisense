@@ -467,7 +467,7 @@ function finishTLX() {
 
 // ──────── FINALIZE & EXPORT ─────────────────────────────────────────
 
-function finalizeSession() {
+async function finalizeSession() {
   collector.injectLabels();
   collector.stop();
   if (state.globalElapsedInterval) clearInterval(state.globalElapsedInterval);
@@ -475,38 +475,40 @@ function finalizeSession() {
   const stats = collector.getStats();
   const r = state.prakritiResult;
 
-  const summary = `
-Participant ID:           ${state.participantId}
+  const summary = `Participant ID:           ${state.participantId}
 Session duration:         ${stats.elapsedMin} minutes
 Feature windows captured: ${stats.windows}
 Total keystrokes:         ${stats.keystrokes}
-Total mouse moves:        ${stats.mouseMoves}
-Total clicks:             ${stats.clicks}
+Prakriti: Vata ${r.vataPct}%  Pitta ${r.pittaPct}%  Kapha ${r.kaphaPct}%  Dominant: ${DOSHA_INFO[r.dominant].name}
+Stroop correct: ${state.stroopResults.filter(s => s.correct).length} / ${state.stroopResults.length}
+Mouse hits: ${state.mouseTaskData.hits}  misses: ${state.mouseTaskData.misses}
+NASA-TLX mental: ${state.tlxValues.mental_demand}  effort: ${state.tlxValues.effort}  frustration: ${state.tlxValues.frustration}`;
 
-Prakriti profile:
-  Vata:  ${r.vataPct}%
-  Pitta: ${r.pittaPct}%
-  Kapha: ${r.kaphaPct}%
-  Dominant: ${DOSHA_INFO[r.dominant].name}
+  document.getElementById("sessionSummary").textContent = summary;
 
-Stroop task:
-  Correct: ${state.stroopResults.filter(s => s.correct).length} / ${state.stroopResults.length}
-  Avg RT:  ${state.stroopResults.length > 0 ? Math.round(state.stroopResults.reduce((s,r)=>s+r.rt_ms,0) / state.stroopResults.length) : 0} ms
+  showDbStatus("saving");
+  const connected = await db.init();
+  if (!connected) { showDbStatus("offline"); return; }
 
-Mouse task:
-  Hits:    ${state.mouseTaskData.hits}
-  Misses:  ${state.mouseTaskData.misses}
-  Avg RT:  ${state.mouseTaskData.hits > 0 ? Math.round(state.mouseTaskData.rtSum / state.mouseTaskData.hits) : 0} ms
+  const result = await db.saveAll(
+    state.participantId, state.prakritiResult, state.tlxValues,
+    state.stroopResults, state.mouseTaskData, stats, collector.windows
+  );
+  showDbStatus(result.success ? "saved" : "error", result);
+}
 
-NASA-TLX:
-  Mental Demand:   ${state.tlxValues.mental_demand}/100
-  Physical Demand: ${state.tlxValues.physical_demand}/100
-  Temporal Demand: ${state.tlxValues.temporal_demand}/100
-  Performance:     ${state.tlxValues.performance}/100
-  Effort:          ${state.tlxValues.effort}/100
-  Frustration:     ${state.tlxValues.frustration}/100
-`;
-  document.getElementById("sessionSummary").textContent = summary.trim();
+function showDbStatus(status, result) {
+  const note = document.querySelector(".export-note");
+  if (!note) return;
+  const msg = {
+    saving:  "Saving to Supabase database...",
+    saved:   "Saved to Supabase — " + (result && result.windowsSaved || 0) + " feature windows stored. No file sharing needed.",
+    offline: "Database not configured — please download CSV and share with the research team.",
+    error:   "Cloud save failed — please download CSV as backup.",
+  };
+  const col = { saving:"var(--color-text-secondary)", saved:"var(--color-text-success)", offline:"var(--color-text-warning)", error:"var(--color-text-danger)" };
+  note.textContent = msg[status] || "";
+  note.style.color = col[status] || "inherit";
 }
 
 function exportCSV() {
