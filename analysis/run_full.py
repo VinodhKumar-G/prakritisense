@@ -386,39 +386,167 @@ def run_eeg_validation():
 # ═══════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════
+# AUTO-PULL FROM SUPABASE
+# ═══════════════════════════════════════════════════════════════════════
+
+def pull_from_supabase():
+    """Auto-pull real data from Supabase by reading credentials from db.js."""
+    print("\n📡 Auto-pulling data from Supabase...")
+
+    try:
+        from supabase import create_client
+    except ImportError:
+        os.system("pip install supabase --quiet --break-system-packages 2>/dev/null || pip install supabase --quiet")
+        from supabase import create_client
+
+    # Read credentials from db.js
+    db_js_path = os.path.join(ROOT, "db.js")
+    url, key = None, None
+
+    if not os.path.exists(db_js_path):
+        print("  db.js not found — cannot pull from Supabase")
+        return None
+
+    with open(db_js_path) as f:
+        for line in f:
+            if "SUPABASE_URL" in line and "=" in line and "YOUR_PROJECT" not in line and "//" not in line.split("=")[0]:
+                parts = line.split('"')
+                if len(parts) >= 2:
+                    url = parts[1]
+            if "SUPABASE_ANON_KEY" in line and "=" in line and "YOUR_ANON" not in line and "//" not in line.split("=")[0]:
+                parts = line.split('"')
+                if len(parts) >= 2:
+                    key = parts[1]
+
+    if not url or not key or "YOUR_" in url:
+        print("  Supabase credentials not configured in db.js")
+        return None
+
+    print(f"  Connecting to {url[:40]}...")
+    client = create_client(url, key)
+
+    # Pull feature_windows
+    response = client.table("feature_windows").select("*").execute()
+    if not response.data:
+        print("  No data found in feature_windows table")
+        return None
+
+    df = pd.DataFrame(response.data)
+
+    # Pull sessions for dominant_dosha and TLX
+    sessions_resp = client.table("sessions").select("*").execute()
+    if sessions_resp.data:
+        sess = pd.DataFrame(sessions_resp.data)
+        # Merge selected session fields into feature windows
+        sess_cols = sess[["id", "dominant_dosha", "tlx_mental_demand", "tlx_effort",
+                          "tlx_frustration", "session_duration_min"]].copy()
+        sess_cols = sess_cols.rename(columns={"id": "session_id"})
+        df = df.merge(sess_cols, on="session_id", how="left", suffixes=("", "_sess"))
+
+    df["is_synthetic"] = False
+
+    save_path = os.path.join(DATA_DIR, "real_from_supabase.csv")
+    df.to_csv(save_path, index=False)
+
+    n_participants = df["participant_id"].nunique()
+    print(f"  ✅ Pulled {len(df)} rows from {n_participants} participants")
+    print(f"  Saved → {save_path}")
+
+    return save_path, n_participants
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════════════
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--real", type=str, default=None)
-    parser.add_argument("--synthetic", type=str, default=None)
+    parser = argparse.ArgumentParser(description="PrakritiSense full ML pipeline")
+    parser.add_argument("--real", type=str, default=None,
+                        help="Path to real data CSV (skips Supabase pull)")
+    parser.add_argument("--synthetic", type=str, default=None,
+                        help="Path to synthetic data CSV")
+    parser.add_argument("--no_synthetic", action="store_true",
+                        help="Skip synthetic data — use only real data")
+    parser.add_argument("--skip_supabase", action="store_true",
+                        help="Don't pull from Supabase — use local files only")
     args = parser.parse_args()
 
     print("╔══════════════════════════════════════════════════════════╗")
     print("║  PrakritiSense — Full Pipeline (Merge + Train + EEG)    ║")
     print("╚══════════════════════════════════════════════════════════╝")
 
-    # Find data files
+    # ── FIND REAL DATA ────────────────────────────────────────────────
     real_path = args.real
+    n_real = 0
+
+    if not real_path and not args.skip_supabase:
+        # Auto-pull from Supabase
+        result = pull_from_supabase()
+        if result:
+            real_path, n_real = result
+
     if not real_path:
-        for candidate in ["data/ml_dataset_rows.csv", "data/real_participants.csv",
-                           "data/prakritisense_P000_1781685994411.csv"]:
+        # Fall back to local files
+        for candidate in ["data/real_from_supabase.csv", "data/ml_dataset_rows.csv",
+                           "data/real_participants.csv"]:
             full = os.path.join(ROOT, candidate)
             if os.path.exists(full):
                 real_path = full
+                n_real = pd.read_csv(full)["participant_id"].nunique()
+                print(f"\n  Found local real data: {real_path} ({n_real} participants)")
                 break
 
-    syn_path = args.synthetic or os.path.join(DATA_DIR, "synthetic_participants.csv")
-    if not os.path.exists(syn_path):
-        print("\n  Generating synthetic data first...")
-        os.system(f"cd {ROOT} && python3 analysis/01_generate_synthetic.py --n_synthetic 30")
+    # ── DECIDE ON SYNTHETIC ────────────────────────────────────────────
+    use_synthetic = not args.no_synthetic
 
-    if not real_path or not os.path.exists(real_path):
-        print(f"\n  ⚠️  No real data found. Using synthetic only.")
-        real_path = syn_path  # Will just use synthetic as both
+    if args.no_synthetic:
+        print("\n  --no_synthetic flag set. Using real data only.")
+        if not real_path:
+            print("  ERROR: No real data found and --no_synthetic is set. Cannot continue.")
+            sys.exit(1)
+    elif n_real >= 6 and not args.synthetic:
+        # Enough real data — ask if synthetic is still wanted
+        print(f"\n  You have {n_real} real participants — enough for LOGO CV.")
+        print(f"  Synthetic data will still be added for robustness.")
+        print(f"  To use ONLY real data: python3 analysis/run_full.py --no_synthetic")
 
-    # Step 1: Merge
-    df = merge_data(real_path, syn_path)
+    # ── LOAD OR GENERATE SYNTHETIC ─────────────────────────────────────
+    syn_path = None
+    if use_synthetic:
+        syn_path = args.synthetic or os.path.join(DATA_DIR, "synthetic_participants.csv")
+        if not os.path.exists(syn_path):
+            print("\n  Generating synthetic data (30 participants)...")
+            os.system(f"cd {ROOT} && python3 analysis/01_generate_synthetic.py --n_synthetic 30")
 
+    # ── MERGE OR USE SINGLE SOURCE ─────────────────────────────────────
+    if real_path and syn_path and use_synthetic:
+        df = merge_data(real_path, syn_path)
+    elif real_path:
+        print("\n  Using real data only (no synthetic)...")
+        df = pd.read_csv(real_path)
+        df["is_synthetic"] = False
+        # Add dominant_dosha if missing
+        if "dominant_dosha" not in df.columns:
+            df["dominant_dosha"] = df.apply(
+                lambda r: "V" if r.get("vata_pct", 0) >= r.get("pitta_pct", 0)
+                and r.get("vata_pct", 0) >= r.get("kapha_pct", 0)
+                else ("P" if r.get("pitta_pct", 0) >= r.get("kapha_pct", 0) else "K"), axis=1)
+        # Drop zero-feature rows
+        feature_sum = df[FEATURES_7].sum(axis=1)
+        df = df[feature_sum > 0].copy()
+        df = df.dropna(subset=["fatigue_label"])
+        df = df[df["fatigue_label"].isin(LABEL_MAP.keys())].copy()
+        df.to_csv(os.path.join(DATA_DIR, "all_data_merged.csv"), index=False)
+        print(f"  Dataset: {len(df)} rows, {df['participant_id'].nunique()} participants (real only)")
+    else:
+        print("\n  No real data — using synthetic only...")
+        syn_path = os.path.join(DATA_DIR, "synthetic_participants.csv")
+        if not os.path.exists(syn_path):
+            os.system(f"cd {ROOT} && python3 analysis/01_generate_synthetic.py --n_synthetic 30")
+        df = pd.read_csv(syn_path)
+        df.to_csv(os.path.join(DATA_DIR, "all_data_merged.csv"), index=False)
+
+    # ── RUN PIPELINE ──────────────────────────────────────────────────
     # Step 2: Train
     base, prak = run_training(df)
 
@@ -428,24 +556,30 @@ def main():
     # Step 4: EEG validation
     eeg = run_eeg_validation()
 
-    # ── Final summary ─────────────────────────────────────────────────
+    # ── FINAL SUMMARY ─────────────────────────────────────────────────
     print("\n" + "=" * 60)
     print("  ALL DONE — FINAL RESULTS")
     print("=" * 60)
-    print(f"  Dataset:       {len(df)} rows, {df['participant_id'].nunique()} participants")
+    n_total = len(df)
+    n_parts = df["participant_id"].nunique()
+    print(f"  Dataset:       {n_total} rows, {n_parts} participants")
     if "is_synthetic" in df.columns:
-        print(f"  Real:          {len(df[df['is_synthetic']==False])} rows")
-        print(f"  Synthetic:     {len(df[df['is_synthetic']==True])} rows")
-    print(f"  Baseline AUC:  {base['auc_ovr']:.4f}")
-    print(f"  Prakriti AUC:  {prak['auc_ovr']:.4f}  (Δ = {prak['auc_ovr']-base['auc_ovr']:+.4f})")
+        n_r = len(df[df["is_synthetic"] == False])
+        n_s = len(df[df["is_synthetic"] == True])
+        print(f"  Real:          {n_r} rows")
+        print(f"  Synthetic:     {n_s} rows")
+    b_auc = base["auc_ovr"]
+    p_auc = prak["auc_ovr"]
+    print(f"  Baseline AUC:  {b_auc:.4f}")
+    print(f"  Prakriti AUC:  {p_auc:.4f}  (delta = {p_auc - b_auc:+.4f})")
     print(f"  EEG r:         {eeg['pearson_r']}")
     print(f"  EEG agreement: {eeg['label_agreement']:.1%}")
-    print(f"\n  Outputs in: {OUT_DIR}/")
-    for f in sorted(os.listdir(OUT_DIR)):
-        if f.endswith(".png") or f.endswith(".json"):
-            print(f"    {f}")
-    print(f"\n  Models in: {MODEL_DIR}/")
-    print(f"\n  Next: streamlit run dashboard/app.py --server.port 8501")
+    print(f"\n  Outputs in: outputs/")
+    for fname in sorted(os.listdir(OUT_DIR)):
+        if fname.endswith(".png") or fname.endswith(".json"):
+            print(f"    {fname}")
+    print(f"\n  Models in: models/")
+    print(f"\n  Dashboard: streamlit run dashboard/app.py --server.port 8501")
 
 
 if __name__ == "__main__":
