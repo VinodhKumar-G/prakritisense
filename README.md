@@ -87,9 +87,8 @@ streamlit run dashboard/app.py --server.port 8501 --server.headless true
 ### Option 2 — Run locally
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/prakritisense.git
+git clone https://VinodhKumar-G/prakritisense.git
 cd prakritisense
-pip install -r requirements.txt
 python3 analysis/run_full.py
 streamlit run dashboard/app.py --server.port 8501
 ```
