@@ -16,7 +16,7 @@
       "onAutoForward": "openPreview"
     }
   },
-  "postCreateCommand": "npm install -g live-server && pip install pandas numpy scikit-learn xgboost shap streamlit matplotlib seaborn",
+  "postCreateCommand": "npm install -g live-server && pip install pandas numpy scikit-learn xgboost shap streamlit matplotlib seaborn plotly supabase",
   "customizations": {
     "vscode": {
       "extensions": [
